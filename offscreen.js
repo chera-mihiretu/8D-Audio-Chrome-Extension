@@ -413,6 +413,11 @@ let isProcessing = false;
 
 // Listen for messages from the background script
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  // Only handle messages targeted at offscreen document
+  if (message.target !== 'offscreen') {
+    return false; // Let other listeners handle it
+  }
+  
   console.log('[8D Audio Offscreen] Received message:', message.action);
   
   handleMessage(message).then(sendResponse).catch(error => {

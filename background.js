@@ -51,9 +51,18 @@ async function closeOffscreenDocument() {
 // ============================================
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log('[8D Audio BG] Received message:', message.action);
+  // Ignore messages meant for offscreen document
+  // These are marked with target: 'offscreen'
+  if (message.target === 'offscreen') {
+    // Don't handle - let offscreen.js handle it
+    return false;
+  }
   
-  handleMessage(message).then(sendResponse).catch(error => {
+  console.log('[8D Audio BG] Handling message:', message.action);
+  
+  handleMessage(message).then(response => {
+    sendResponse(response);
+  }).catch(error => {
     console.error('[8D Audio BG] Error:', error);
     sendResponse({ success: false, error: error.message });
   });
@@ -79,6 +88,7 @@ async function handleMessage(message) {
       return await getProcessingStatus();
     
     default:
+      console.log('[8D Audio BG] Unknown action:', message.action);
       return { success: false, error: 'Unknown action' };
   }
 }
@@ -89,7 +99,8 @@ async function forwardToOffscreen(message) {
   }
   
   return new Promise((resolve) => {
-    chrome.runtime.sendMessage(message, resolve);
+    // Add target field so background.js ignores this message
+    chrome.runtime.sendMessage({ ...message, target: 'offscreen' }, resolve);
   });
 }
 
@@ -115,6 +126,7 @@ async function activateProcessing(tabId, settings) {
     // Send to offscreen document to start processing
     const response = await new Promise((resolve) => {
       chrome.runtime.sendMessage({
+        target: 'offscreen',
         action: 'start',
         streamId: streamId,
         settings: settings
@@ -145,7 +157,7 @@ async function deactivateProcessing() {
     // Tell offscreen document to stop
     if (await hasOffscreenDocument()) {
       await new Promise((resolve) => {
-        chrome.runtime.sendMessage({ action: 'stop' }, resolve);
+        chrome.runtime.sendMessage({ target: 'offscreen', action: 'stop' }, resolve);
       });
     }
     
