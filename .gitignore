@@ -1,1 +1,23 @@
+# Dependencies
 /node_modules
+
+# Development files
+/scripts
+package.json
+package-lock.json
+
+# Generated files that can be regenerated
+icons/generate-icons.html
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Build artifacts
+*.zip
+/dist
