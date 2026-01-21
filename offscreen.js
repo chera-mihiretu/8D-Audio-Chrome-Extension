@@ -83,15 +83,21 @@ class Audio8DProcessor {
       // Create 3D Panner with HRTF for realistic spatial audio
       this.pannerNode = this.audioContext.createPanner();
       this.pannerNode.panningModel = 'HRTF';  // Head-Related Transfer Function
-      this.pannerNode.distanceModel = 'inverse';
-      this.pannerNode.refDistance = 1;
-      this.pannerNode.maxDistance = 10000;
-      this.pannerNode.rolloffFactor = 1;
+      
+      // Use 'linear' distance model with careful settings for consistent volume
+      // This prevents volume spikes when sound passes close to listener
+      this.pannerNode.distanceModel = 'linear';
+      this.pannerNode.refDistance = 1;           // Reference distance (no attenuation)
+      this.pannerNode.maxDistance = 10;          // Max distance for attenuation calc
+      this.pannerNode.rolloffFactor = 0.1;       // Very gentle rolloff (almost none)
+      
+      // No cone restrictions - sound radiates equally in all directions
       this.pannerNode.coneInnerAngle = 360;
       this.pannerNode.coneOuterAngle = 360;
       this.pannerNode.coneOuterGain = 0;
       
-      // Initial position (in front of listener)
+      // Initial position (directly in front of listener)
+      // At angle=0: x=0, z=-distance (in front)
       this.setPosition(0, 0, -this.settings.distance);
       
       // Master gain
@@ -245,7 +251,7 @@ class Audio8DProcessor {
       this.intervalId = null;
     }
     
-    // Return to center position
+    // Return to front-center position (directly in front of listener)
     this.setPosition(0, 0, -this.settings.distance);
     
     console.log('[8D Audio] Effect stopped');
@@ -253,7 +259,8 @@ class Audio8DProcessor {
 
   /**
    * Update the 3D position of the sound source
-   * Creates a circular/spherical orbit around the listener
+   * Creates a true circular orbit around the listener at CONSTANT distance
+   * This ensures consistent volume throughout the rotation
    */
   update3DPosition() {
     if (!this.isActive || !this.audioContext || !this.pannerNode) return;
@@ -268,20 +275,21 @@ class Audio8DProcessor {
     // Main rotation angle (horizontal orbit)
     const angle = elapsed * speed * Math.PI * 2;
     
-    // Calculate radius based on intensity and base distance
-    const radius = this.settings.distance * this.settings.intensity;
+    // Use a fixed radius for consistent distance (and thus consistent volume)
+    // The intensity controls how wide the orbit feels via the HRTF effect
+    const radius = this.settings.distance;
     
-    // X position: left-right movement (sin for smooth L/R motion)
-    const x = Math.sin(angle) * radius;
+    // TRUE CIRCULAR ORBIT at constant distance from listener
+    // This fixes the volume fluctuation issue!
+    // X: left-right (positive = right ear, negative = left ear)
+    // Z: front-back (negative = in front, positive = behind)
+    const x = Math.sin(angle) * radius * this.settings.intensity;
+    const z = -Math.cos(angle) * radius;  // Negative cos so sound starts in front
     
-    // Z position: front-back movement (cos for depth)
-    // Negative Z is in front of the listener
-    const z = -this.settings.distance + (Math.cos(angle) * radius * 0.5);
-    
-    // Y position: vertical movement (optional, based on height setting)
-    // Creates a slight up-down wobble synchronized with the rotation
-    const verticalAngle = angle * 2; // Faster vertical oscillation
-    const y = Math.sin(verticalAngle) * this.settings.height * radius * 0.3;
+    // Y position: vertical movement (subtle up-down based on height setting)
+    // Using a different frequency for more organic movement
+    const verticalAngle = angle * 1.5;
+    const y = Math.sin(verticalAngle) * this.settings.height * 0.5;
     
     // Set the new 3D position
     this.setPosition(x, y, z);
