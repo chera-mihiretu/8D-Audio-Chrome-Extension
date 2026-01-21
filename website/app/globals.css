@@ -1,0 +1,392 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0a0e17;
+  --background-secondary: #0d1220;
+  --foreground: #e8edf5;
+  --cyan-glow: #00f0ff;
+  --cyan-dark: #00b8c5;
+  --purple-glow: #8b5cf6;
+  --magenta-glow: #c026d3;
+  --gradient-start: #00f0ff;
+  --gradient-end: #8b5cf6;
+  --card-bg: rgba(13, 18, 32, 0.8);
+  --card-border: rgba(0, 240, 255, 0.15);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-display: var(--font-orbitron);
+  --font-body: var(--font-exo2);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-exo2), "Exo 2", sans-serif;
+  overflow-x: hidden;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--cyan-glow), var(--purple-glow));
+  border-radius: 4px;
+}
+
+/* Glowing text effect */
+.text-glow {
+  text-shadow: 0 0 10px var(--cyan-glow), 0 0 20px var(--cyan-glow),
+    0 0 30px var(--cyan-glow);
+}
+
+.text-glow-purple {
+  text-shadow: 0 0 10px var(--purple-glow), 0 0 20px var(--purple-glow),
+    0 0 30px var(--purple-glow);
+}
+
+/* Animated gradient border */
+.gradient-border {
+  position: relative;
+  background: var(--card-bg);
+  border-radius: 16px;
+}
+
+.gradient-border::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    var(--cyan-glow),
+    var(--purple-glow),
+    var(--magenta-glow)
+  );
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Pulsing glow animation */
+@keyframes pulse-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 20px var(--cyan-glow), 0 0 40px rgba(0, 240, 255, 0.3),
+      0 0 60px rgba(0, 240, 255, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 30px var(--cyan-glow), 0 0 60px rgba(0, 240, 255, 0.5),
+      0 0 90px rgba(0, 240, 255, 0.2);
+  }
+}
+
+.pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Rotating audio wave animation */
+@keyframes rotate-wave {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.rotate-wave {
+  animation: rotate-wave 8s linear infinite;
+}
+
+/* Float animation */
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+.float {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Fade in up animation */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.8s ease-out forwards;
+}
+
+.animation-delay-200 {
+  animation-delay: 200ms;
+}
+
+.animation-delay-400 {
+  animation-delay: 400ms;
+}
+
+.animation-delay-600 {
+  animation-delay: 600ms;
+}
+
+/* Circuit pattern background */
+.circuit-pattern {
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg stroke='%2300f0ff' stroke-width='0.5' stroke-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* Gradient button */
+.btn-gradient {
+  background: linear-gradient(135deg, var(--cyan-glow), var(--purple-glow));
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-gradient::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.2),
+    transparent 50%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.btn-gradient:hover::before {
+  opacity: 1;
+}
+
+.btn-gradient:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 40px rgba(0, 240, 255, 0.4);
+}
+
+/* Sound wave bars animation */
+@keyframes sound-wave {
+  0%,
+  100% {
+    height: 10px;
+  }
+  50% {
+    height: 30px;
+  }
+}
+
+.sound-bar {
+  animation: sound-wave 0.8s ease-in-out infinite;
+}
+
+.sound-bar:nth-child(1) {
+  animation-delay: 0s;
+}
+.sound-bar:nth-child(2) {
+  animation-delay: 0.1s;
+}
+.sound-bar:nth-child(3) {
+  animation-delay: 0.2s;
+}
+.sound-bar:nth-child(4) {
+  animation-delay: 0.3s;
+}
+.sound-bar:nth-child(5) {
+  animation-delay: 0.4s;
+}
+.sound-bar:nth-child(6) {
+  animation-delay: 0.3s;
+}
+.sound-bar:nth-child(7) {
+  animation-delay: 0.2s;
+}
+.sound-bar:nth-child(8) {
+  animation-delay: 0.1s;
+}
+
+/* Particles effect */
+@keyframes particle-float {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.6;
+  }
+  25% {
+    transform: translate(10px, -20px) scale(1.1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: translate(-5px, -40px) scale(0.9);
+    opacity: 0.4;
+  }
+  75% {
+    transform: translate(15px, -20px) scale(1.05);
+    opacity: 0.7;
+  }
+}
+
+.particle {
+  animation: particle-float 4s ease-in-out infinite;
+}
+
+/* Ring pulse animation for power button */
+@keyframes ring-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+.ring-pulse {
+  animation: ring-pulse 2s ease-out infinite;
+}
+
+/* Slider track gradient */
+.slider-track {
+  background: linear-gradient(
+    90deg,
+    var(--cyan-glow) 0%,
+    var(--purple-glow) 50%,
+    var(--magenta-glow) 100%
+  );
+}
+
+/* Glass morphism card */
+.glass-card {
+  background: rgba(13, 18, 32, 0.6);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 240, 255, 0.1);
+}
+
+/* Headphones glow effect */
+@keyframes headphones-glow {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 20px rgba(0, 240, 255, 0.6))
+      drop-shadow(0 0 40px rgba(0, 240, 255, 0.3));
+  }
+  50% {
+    filter: drop-shadow(0 0 30px rgba(0, 240, 255, 0.8))
+      drop-shadow(0 0 60px rgba(139, 92, 246, 0.4));
+  }
+}
+
+.headphones-glow {
+  animation: headphones-glow 3s ease-in-out infinite;
+}
+
+/* Orbiting ring animation */
+@keyframes orbit {
+  0% {
+    transform: rotateX(70deg) rotateZ(0deg);
+  }
+  100% {
+    transform: rotateX(70deg) rotateZ(360deg);
+  }
+}
+
+.orbit-ring {
+  animation: orbit 4s linear infinite;
+}
+
+/* Wave animation for audio visualization */
+@keyframes wave-motion {
+  0% {
+    d: path(
+      "M0,50 Q25,30 50,50 T100,50 T150,50 T200,50 T250,50 T300,50 T350,50 T400,50"
+    );
+  }
+  50% {
+    d: path(
+      "M0,50 Q25,70 50,50 T100,50 T150,50 T200,50 T250,50 T300,50 T350,50 T400,50"
+    );
+  }
+  100% {
+    d: path(
+      "M0,50 Q25,30 50,50 T100,50 T150,50 T200,50 T250,50 T300,50 T350,50 T400,50"
+    );
+  }
+}
+
+/* Shine effect for CTA */
+@keyframes shine {
+  0% {
+    left: -100%;
+  }
+  50%,
+  100% {
+    left: 100%;
+  }
+}
+
+.shine-effect {
+  position: relative;
+  overflow: hidden;
+}
+
+.shine-effect::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  animation: shine 3s infinite;
+}
+
+/* Feature card hover effect */
+.feature-card {
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.feature-card:hover {
+  transform: translateY(-10px) scale(1.02);
+}
+
+.feature-card:hover .feature-icon {
+  transform: scale(1.1) rotate(5deg);
+}
+
+.feature-icon {
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
