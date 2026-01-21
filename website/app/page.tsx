@@ -1137,7 +1137,7 @@ export default function Home() {
             </div>
 
             <div className="flex items-center gap-6 text-gray-400">
-              <a href="#" className="hover:text-white transition-colors">
+              <a href="/privacy" className="hover:text-white transition-colors">
                 Privacy Policy
               </a>
               <a href="#" className="hover:text-white transition-colors">
