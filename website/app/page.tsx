@@ -66,15 +66,28 @@ const HeadphonesIllustration = () => (
       />
     </div>
 
-    {/* Particles */}
-    {[...Array(12)].map((_, i) => (
+    {/* Particles - fixed positions to avoid hydration mismatch */}
+    {[
+      { left: 25, top: 30 },
+      { left: 70, top: 25 },
+      { left: 35, top: 65 },
+      { left: 75, top: 70 },
+      { left: 22, top: 50 },
+      { left: 65, top: 45 },
+      { left: 45, top: 28 },
+      { left: 55, top: 72 },
+      { left: 30, top: 75 },
+      { left: 78, top: 35 },
+      { left: 40, top: 40 },
+      { left: 60, top: 58 },
+    ].map((pos, i) => (
       <div
         key={i}
         className="absolute w-2 h-2 rounded-full particle"
         style={{
           background: i % 2 === 0 ? "#00f0ff" : "#8b5cf6",
-          left: `${20 + Math.random() * 60}%`,
-          top: `${20 + Math.random() * 60}%`,
+          left: `${pos.left}%`,
+          top: `${pos.top}%`,
           animationDelay: `${i * 0.3}s`,
           opacity: 0.6,
         }}
