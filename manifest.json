@@ -5,7 +5,9 @@
   "description": "Transform any audio into an immersive 8D experience with rotating spatial sound",
   "permissions": [
     "activeTab",
+    "tabs",
     "tabCapture",
+    "offscreen",
     "storage"
   ],
   "action": {

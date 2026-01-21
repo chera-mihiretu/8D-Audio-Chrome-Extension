@@ -1,196 +1,14 @@
 /**
  * 8D Audio Extension - Popup Script
  * 
- * Handles the popup UI, tab audio capture, and audio processing.
+ * UI-only script that communicates with the background service worker.
+ * All audio processing happens in the offscreen document with HRTF 3D audio.
  */
-
-// ============================================
-// Audio8DProcessor Class (embedded for popup)
-// ============================================
-
-class Audio8DProcessor {
-  constructor() {
-    this.audioContext = null;
-    this.sourceNode = null;
-    this.pannerNode = null;
-    this.gainNode = null;
-    this.reverbNode = null;
-    this.bassBoostNode = null;
-    this.dryGainNode = null;
-    this.wetGainNode = null;
-    
-    this.isActive = false;
-    this.animationId = null;
-    this.startTime = 0;
-    
-    this.settings = {
-      speed: 1.0,
-      intensity: 0.8,
-      reverb: 0.3,
-      bassBoost: 0.2
-    };
-  }
-
-  async initialize(stream) {
-    try {
-      this.audioContext = new AudioContext();
-      this.sourceNode = this.audioContext.createMediaStreamSource(stream);
-      
-      this.pannerNode = this.audioContext.createStereoPanner();
-      this.pannerNode.pan.value = 0;
-      
-      this.gainNode = this.audioContext.createGain();
-      this.gainNode.gain.value = 1.0;
-      
-      this.bassBoostNode = this.audioContext.createBiquadFilter();
-      this.bassBoostNode.type = 'lowshelf';
-      this.bassBoostNode.frequency.value = 200;
-      this.bassBoostNode.gain.value = 0;
-      
-      await this.createReverb();
-      
-      this.dryGainNode = this.audioContext.createGain();
-      this.wetGainNode = this.audioContext.createGain();
-      
-      this.updateReverbMix();
-      this.updateBassBoost();
-      
-      this.sourceNode.connect(this.bassBoostNode);
-      this.bassBoostNode.connect(this.pannerNode);
-      
-      this.pannerNode.connect(this.dryGainNode);
-      this.dryGainNode.connect(this.gainNode);
-      
-      this.pannerNode.connect(this.reverbNode);
-      this.reverbNode.connect(this.wetGainNode);
-      this.wetGainNode.connect(this.gainNode);
-      
-      this.gainNode.connect(this.audioContext.destination);
-      
-      console.log('[8D Audio] Processor initialized');
-      return true;
-    } catch (error) {
-      console.error('[8D Audio] Init failed:', error);
-      throw error;
-    }
-  }
-
-  async createReverb() {
-    this.reverbNode = this.audioContext.createConvolver();
-    
-    const sampleRate = this.audioContext.sampleRate;
-    const length = sampleRate * 2;
-    const impulse = this.audioContext.createBuffer(2, length, sampleRate);
-    
-    for (let channel = 0; channel < 2; channel++) {
-      const channelData = impulse.getChannelData(channel);
-      for (let i = 0; i < length; i++) {
-        const decay = Math.exp(-3 * i / length);
-        channelData[i] = (Math.random() * 2 - 1) * decay;
-      }
-    }
-    
-    this.reverbNode.buffer = impulse;
-  }
-
-  updateReverbMix() {
-    if (!this.dryGainNode || !this.wetGainNode) return;
-    
-    const wetAmount = this.settings.reverb;
-    const dryAmount = 1 - (wetAmount * 0.5);
-    
-    this.dryGainNode.gain.setTargetAtTime(dryAmount, this.audioContext.currentTime, 0.1);
-    this.wetGainNode.gain.setTargetAtTime(wetAmount, this.audioContext.currentTime, 0.1);
-  }
-
-  updateBassBoost() {
-    if (!this.bassBoostNode) return;
-    const gainDb = this.settings.bassBoost * 18 - 6;
-    this.bassBoostNode.gain.setTargetAtTime(gainDb, this.audioContext.currentTime, 0.1);
-  }
-
-  start() {
-    if (this.isActive) return;
-    this.isActive = true;
-    this.startTime = this.audioContext.currentTime;
-    this.animate();
-  }
-
-  stop() {
-    this.isActive = false;
-    if (this.animationId) {
-      cancelAnimationFrame(this.animationId);
-      this.animationId = null;
-    }
-    if (this.pannerNode && this.audioContext) {
-      this.pannerNode.pan.setTargetAtTime(0, this.audioContext.currentTime, 0.1);
-    }
-  }
-
-  animate() {
-    if (!this.isActive || !this.audioContext) return;
-    
-    const elapsed = this.audioContext.currentTime - this.startTime;
-    const baseFrequency = 0.15;
-    const frequency = baseFrequency * this.settings.speed;
-    const panValue = Math.sin(elapsed * frequency * Math.PI * 2) * this.settings.intensity;
-    
-    this.pannerNode.pan.setTargetAtTime(panValue, this.audioContext.currentTime, 0.02);
-    this.animationId = requestAnimationFrame(() => this.animate());
-  }
-
-  updateSettings(newSettings) {
-    this.settings = { ...this.settings, ...newSettings };
-    if ('reverb' in newSettings) this.updateReverbMix();
-    if ('bassBoost' in newSettings) this.updateBassBoost();
-  }
-
-  applyPreset(presetName) {
-    const presets = {
-      subtle: { speed: 0.5, intensity: 0.4, reverb: 0.2, bassBoost: 0.1 },
-      classic: { speed: 1.0, intensity: 0.8, reverb: 0.3, bassBoost: 0.2 },
-      intense: { speed: 1.8, intensity: 1.0, reverb: 0.4, bassBoost: 0.4 },
-      concert: { speed: 0.7, intensity: 0.6, reverb: 0.7, bassBoost: 0.3 }
-    };
-    
-    const preset = presets[presetName];
-    if (preset) {
-      this.updateSettings(preset);
-      return preset;
-    }
-    return null;
-  }
-
-  getCurrentPan() {
-    return this.pannerNode ? this.pannerNode.pan.value : 0;
-  }
-
-  destroy() {
-    this.stop();
-    if (this.sourceNode) this.sourceNode.disconnect();
-    if (this.audioContext) this.audioContext.close();
-    
-    this.audioContext = null;
-    this.sourceNode = null;
-    this.pannerNode = null;
-    this.gainNode = null;
-    this.reverbNode = null;
-    this.bassBoostNode = null;
-    this.dryGainNode = null;
-    this.wetGainNode = null;
-  }
-}
-
-
-// ============================================
-// UI Controller
-// ============================================
 
 class PopupController {
   constructor() {
-    this.processor = null;
-    this.stream = null;
     this.isActive = false;
+    this.activeTabId = null;
     
     // DOM Elements
     this.powerButton = document.getElementById('powerButton');
@@ -205,18 +23,21 @@ class PopupController {
     this.intensitySlider = document.getElementById('intensitySlider');
     this.reverbSlider = document.getElementById('reverbSlider');
     this.bassSlider = document.getElementById('bassSlider');
+    this.heightSlider = document.getElementById('heightSlider');
     
     // Value displays
     this.speedValue = document.getElementById('speedValue');
     this.intensityValue = document.getElementById('intensityValue');
     this.reverbValue = document.getElementById('reverbValue');
     this.bassValue = document.getElementById('bassValue');
+    this.heightValue = document.getElementById('heightValue');
     
     // Slider fills
     this.speedFill = document.getElementById('speedFill');
     this.intensityFill = document.getElementById('intensityFill');
     this.reverbFill = document.getElementById('reverbFill');
     this.bassFill = document.getElementById('bassFill');
+    this.heightFill = document.getElementById('heightFill');
     
     // Preset buttons
     this.presetButtons = document.querySelectorAll('.preset-btn');
@@ -224,7 +45,7 @@ class PopupController {
     this.init();
   }
 
-  init() {
+  async init() {
     // Power button click
     this.powerButton.addEventListener('click', () => this.toggle());
     
@@ -249,20 +70,28 @@ class PopupController {
       (value) => ({ bassBoost: value / 100 }),
       0, 100);
     
+    this.setupSlider(this.heightSlider, this.heightValue, this.heightFill,
+      (value) => `${Math.round(value)}%`,
+      (value) => ({ height: value / 100 }),
+      0, 100);
+    
     // Preset buttons
     this.presetButtons.forEach(btn => {
       btn.addEventListener('click', () => this.applyPreset(btn.dataset.preset));
     });
     
     // Load saved settings
-    this.loadSettings();
+    await this.loadSettings();
     
     // Update slider visuals
     this.updateAllSliderFills();
+    
+    // Check current processing status
+    await this.checkStatus();
   }
 
   setupSlider(slider, valueDisplay, fillElement, formatter, settingsMapper, min, max) {
-    const updateSlider = () => {
+    const updateSlider = async () => {
       const value = parseFloat(slider.value);
       valueDisplay.textContent = formatter(value);
       
@@ -271,8 +100,11 @@ class PopupController {
       fillElement.style.width = `${percentage}%`;
       
       // Update processor if active
-      if (this.processor) {
-        this.processor.updateSettings(settingsMapper(value));
+      if (this.isActive) {
+        await this.sendMessage({ 
+          action: 'updateSettings', 
+          settings: settingsMapper(value) 
+        });
       }
       
       // Save settings
@@ -300,6 +132,48 @@ class PopupController {
     // Bass
     this.bassFill.style.width = `${this.bassSlider.value}%`;
     this.bassValue.textContent = `${this.bassSlider.value}%`;
+    
+    // Height
+    this.heightFill.style.width = `${this.heightSlider.value}%`;
+    this.heightValue.textContent = `${this.heightSlider.value}%`;
+  }
+
+  async checkStatus() {
+    try {
+      const response = await this.sendMessage({ action: 'getStatus' });
+      
+      if (response.success && response.isProcessing) {
+        this.isActive = true;
+        this.activeTabId = response.activeTabId;
+        this.updateUIState(true);
+        
+        // Update sliders from current settings if available
+        if (response.settings) {
+          this.updateSlidersFromSettings(response.settings);
+        }
+      }
+    } catch (error) {
+      console.log('[8D Audio Popup] Could not get status:', error);
+    }
+  }
+
+  updateSlidersFromSettings(settings) {
+    if (settings.speed !== undefined) {
+      this.speedSlider.value = settings.speed;
+    }
+    if (settings.intensity !== undefined) {
+      this.intensitySlider.value = settings.intensity * 100;
+    }
+    if (settings.reverb !== undefined) {
+      this.reverbSlider.value = settings.reverb * 100;
+    }
+    if (settings.bassBoost !== undefined) {
+      this.bassSlider.value = settings.bassBoost * 100;
+    }
+    if (settings.height !== undefined) {
+      this.heightSlider.value = settings.height * 100;
+    }
+    this.updateAllSliderFills();
   }
 
   async toggle() {
@@ -322,48 +196,40 @@ class PopupController {
       }
       
       // Check if we can capture this tab
-      if (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://')) {
+      if (tab.url && (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://'))) {
         throw new Error('Cannot capture audio from browser pages');
       }
       
-      // Capture tab audio
-      this.stream = await chrome.tabCapture.capture({
-        audio: true,
-        video: false
-      });
-      
-      if (!this.stream) {
-        throw new Error('Failed to capture audio stream');
-      }
-      
-      // Initialize the audio processor
-      this.processor = new Audio8DProcessor();
-      await this.processor.initialize(this.stream);
-      
-      // Apply current slider settings
-      this.processor.updateSettings({
+      // Get current settings
+      const settings = {
         speed: parseFloat(this.speedSlider.value),
         intensity: parseInt(this.intensitySlider.value) / 100,
         reverb: parseInt(this.reverbSlider.value) / 100,
-        bassBoost: parseInt(this.bassSlider.value) / 100
+        bassBoost: parseInt(this.bassSlider.value) / 100,
+        height: parseInt(this.heightSlider.value) / 100
+      };
+      
+      // Send activation request to background
+      const response = await this.sendMessage({
+        action: 'activate',
+        tabId: tab.id,
+        settings: settings
       });
       
-      // Start the 8D effect
-      this.processor.start();
+      if (!response.success) {
+        throw new Error(response.error || 'Activation failed');
+      }
       
       // Update UI
       this.isActive = true;
-      this.powerButton.classList.add('active');
-      this.visualizer.classList.add('active');
-      this.controls.classList.add('active');
-      this.presetsSection.classList.add('active');
-      this.statusLabel.classList.add('active');
-      this.setStatus('Active', '8D audio effect is running');
+      this.activeTabId = tab.id;
+      this.updateUIState(true);
+      this.setStatus('Active', '3D spatial audio running in background');
       
-      console.log('[8D Audio] Activated successfully');
+      console.log('[8D Audio Popup] Activated successfully');
       
     } catch (error) {
-      console.error('[8D Audio] Activation failed:', error);
+      console.error('[8D Audio Popup] Activation failed:', error);
       this.showError(error.message);
       this.setStatus('Error', 'Click to try again');
     }
@@ -371,46 +237,55 @@ class PopupController {
 
   async deactivate() {
     try {
-      // Stop and destroy processor
-      if (this.processor) {
-        this.processor.destroy();
-        this.processor = null;
-      }
+      // Send deactivation request to background
+      const response = await this.sendMessage({ action: 'deactivate' });
       
-      // Stop the stream
-      if (this.stream) {
-        this.stream.getTracks().forEach(track => track.stop());
-        this.stream = null;
+      if (!response.success) {
+        throw new Error(response.error || 'Deactivation failed');
       }
       
       // Update UI
       this.isActive = false;
+      this.activeTabId = null;
+      this.updateUIState(false);
+      this.setStatus('Ready', 'Click to activate 8D audio');
+      
+      console.log('[8D Audio Popup] Deactivated');
+      
+    } catch (error) {
+      console.error('[8D Audio Popup] Deactivation error:', error);
+      this.showError(error.message);
+    }
+  }
+
+  updateUIState(active) {
+    if (active) {
+      this.powerButton.classList.add('active');
+      this.visualizer.classList.add('active');
+      this.controls.classList.add('active');
+      this.presetsSection.classList.add('active');
+      this.statusLabel.classList.add('active');
+    } else {
       this.powerButton.classList.remove('active');
       this.visualizer.classList.remove('active');
       this.controls.classList.remove('active');
       this.presetsSection.classList.remove('active');
       this.statusLabel.classList.remove('active');
-      this.setStatus('Ready', 'Click to activate 8D audio');
-      
-      console.log('[8D Audio] Deactivated');
-      
-    } catch (error) {
-      console.error('[8D Audio] Deactivation error:', error);
     }
   }
 
-  applyPreset(presetName) {
+  async applyPreset(presetName) {
     // Update button states
     this.presetButtons.forEach(btn => {
       btn.classList.toggle('active', btn.dataset.preset === presetName);
     });
     
-    // Get preset values
+    // Get preset values (matching the offscreen.js presets)
     const presets = {
-      subtle: { speed: 0.5, intensity: 40, reverb: 20, bass: 10 },
-      classic: { speed: 1.0, intensity: 80, reverb: 30, bass: 20 },
-      intense: { speed: 1.8, intensity: 100, reverb: 40, bass: 40 },
-      concert: { speed: 0.7, intensity: 60, reverb: 70, bass: 30 }
+      subtle: { speed: 0.5, intensity: 40, reverb: 20, bass: 10, height: 10 },
+      classic: { speed: 1.0, intensity: 80, reverb: 30, bass: 20, height: 30 },
+      intense: { speed: 1.8, intensity: 100, reverb: 40, bass: 40, height: 50 },
+      concert: { speed: 0.7, intensity: 60, reverb: 70, bass: 30, height: 20 }
     };
     
     const preset = presets[presetName];
@@ -421,13 +296,14 @@ class PopupController {
     this.intensitySlider.value = preset.intensity;
     this.reverbSlider.value = preset.reverb;
     this.bassSlider.value = preset.bass;
+    this.heightSlider.value = preset.height;
     
     // Update displays
     this.updateAllSliderFills();
     
     // Apply to processor if active
-    if (this.processor) {
-      this.processor.applyPreset(presetName);
+    if (this.isActive) {
+      await this.sendMessage({ action: 'applyPreset', preset: presetName });
     }
     
     // Save settings
@@ -454,12 +330,25 @@ class PopupController {
     }, 4000);
   }
 
+  async sendMessage(message) {
+    return new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage(message, (response) => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+        } else {
+          resolve(response || { success: false, error: 'No response' });
+        }
+      });
+    });
+  }
+
   saveSettings() {
     const settings = {
       speed: this.speedSlider.value,
       intensity: this.intensitySlider.value,
       reverb: this.reverbSlider.value,
-      bass: this.bassSlider.value
+      bass: this.bassSlider.value,
+      height: this.heightSlider.value
     };
     
     chrome.storage.local.set({ audioSettings: settings });
@@ -469,17 +358,18 @@ class PopupController {
     try {
       const result = await chrome.storage.local.get('audioSettings');
       if (result.audioSettings) {
-        const { speed, intensity, reverb, bass } = result.audioSettings;
+        const { speed, intensity, reverb, bass, height } = result.audioSettings;
         
         if (speed) this.speedSlider.value = speed;
         if (intensity) this.intensitySlider.value = intensity;
         if (reverb) this.reverbSlider.value = reverb;
         if (bass) this.bassSlider.value = bass;
+        if (height) this.heightSlider.value = height;
         
         this.updateAllSliderFills();
       }
     } catch (error) {
-      console.log('[8D Audio] Could not load settings:', error);
+      console.log('[8D Audio Popup] Could not load settings:', error);
     }
   }
 }
@@ -492,4 +382,3 @@ class PopupController {
 document.addEventListener('DOMContentLoaded', () => {
   new PopupController();
 });
-
