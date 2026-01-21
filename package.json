@@ -1,0 +1,22 @@
+{
+  "name": "8d-audio-extension",
+  "version": "1.0.0",
+  "description": "A Chrome extension that transforms any audio into an immersive 8D experience with rotating spatial sound",
+  "main": "audio-processor.js",
+  "scripts": {
+    "generate-icons": "node scripts/generate-icons.js",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "keywords": [
+    "chrome-extension",
+    "8d-audio",
+    "spatial-audio",
+    "web-audio-api",
+    "audio-processing"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "canvas": "^2.11.2"
+  }
+}
